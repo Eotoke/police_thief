@@ -8,11 +8,30 @@ function hit(x,y,r=14){if(x<22||x>W-22||y<22||y>H-22)return 1;return O.some(o=>x
 function spot(away){for(let i=0;i<500;i++){let p={x:40+Math.random()*720,y:40+Math.random()*520};if(!hit(p.x,p.y)&&(!away||Math.hypot(p.x-away.x,p.y-away.y)>240))return p}return{x:50,y:550}}
 function mv(e,vx,vy,d){let nx=e.x+vx*d,ny=e.y+vy*d;if(!hit(nx,e.y))e.x=nx;if(!hit(e.x,ny))e.y=ny}
 function chase(e,q,s,d){let dx=q.x-e.x,dy=q.y-e.y,m=Math.hypot(dx,dy)||1,ax=dx/m,ay=dy/m,px=e.x,py=e.y;mv(e,ax*s,ay*s,d);if(Math.hypot(e.x-px,e.y-py)<1){let side=Math.random()<.5?1:-1;mv(e,-ay*s*side,ax*s*side,d)}}
-function addCop(){let p=spot(me);cops.push({x:p.x,y:p.y,s:120,tar:null,lock:0})}
+function addCop(){let p=spot(me);cops.push({x:p.x,y:p.y,s:114+Math.random()*13,tar:null,lock:0,flank:(Math.random()*2-1)*150,curve:Math.random()*6.28,catches:0})}
 function reset(){me={x:100,y:90};cops=[];thieves=[];L=1;dead=false;t0=performance.now();last=t0;for(let i=0;i<5;i++){let p=spot();thieves.push({x:p.x,y:p.y,s:135+Math.random()*15,alive:true,k:Math.random()*7})}addCop();lv.textContent=L;np.textContent=1;ov.style.display='none'}
-function update(d,n){if(dead)return;let sec=(n-t0)/1000,newL=1+Math.floor(sec/30);while(L<newL){L++;addCop();lv.textContent=L;np.textContent=cops.length;bn.textContent='LEVEL '+L+' · NEW POLICE!';bn.style.display='block';setTimeout(()=>bn.style.display='none',1100)}tm.textContent=Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');let m=Math.hypot(jx,jy);if(m>.05)mv(me,jx/m*220,jy/m*220,d);
+function update(d,n){if(dead)return;let sec=(n-t0)/1000,newL=1+Math.floor(sec/20);while(L<newL){
+L++;
+// Every level brings a fresh pack of thieves.
+thieves=[];
+for(let i=0;i<5;i++){let tp=spot();thieves.push({x:tp.x,y:tp.y,s:132+Math.random()*20,alive:true,k:Math.random()*7})}
+addCop();lv.textContent=L;np.textContent=cops.length;bn.textContent='LEVEL '+L+' · FRESH THIEVES · NEW POLICE!';bn.style.display='block';setTimeout(()=>bn.style.display='none',1100)}tm.textContent=Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');let m=Math.hypot(jx,jy);if(m>.05)mv(me,jx/m*220,jy/m*220,d);
 for(const t of thieves)if(t.alive){t.k+=d;let cc=cops.reduce((a,b)=>Math.hypot(t.x-a.x,t.y-a.y)<Math.hypot(t.x-b.x,t.y-b.y)?a:b);let dx=t.x-cc.x,dy=t.y-cc.y;if(Math.sin(t.k*.8)>.82&&Math.hypot(dx,dy)<230){dx=me.x-t.x;dy=me.y-t.y}chase(t,{x:t.x+dx,y:t.y+dy},t.s,d)}
-for(const p of cops){p.lock-=d;let qs=[me,...thieves.filter(t=>t.alive)],q=qs.reduce((a,b)=>Math.hypot(p.x-a.x,p.y-a.y)<Math.hypot(p.x-b.x,p.y-b.y)?a:b);if(!p.tar||p.lock<=0||!qs.includes(p.tar)){p.tar=q;p.lock=2+Math.random()*2}chase(p,p.tar,p.s,d);if(Math.hypot(p.x-me.x,p.y-me.y)<28){dead=true;sc.textContent='Survived '+tm.textContent+' · Level '+L;ov.style.display='grid'}for(const t of thieves)if(t.alive&&Math.hypot(p.x-t.x,p.y-t.y)<27)t.alive=false}}
+for(const p of cops){p.lock-=d;let qs=[me,...thieves.filter(t=>t.alive)],q=qs.reduce((a,b)=>Math.hypot(p.x-a.x,p.y-a.y)<Math.hypot(p.x-b.x,p.y-b.y)?a:b);if(!p.tar||p.lock<=0||!qs.includes(p.tar)){p.tar=q;p.lock=2+Math.random()*2;p.flank=(Math.random()*2-1)*150}
+p.curve+=d;
+// Each officer aims at a slightly different approach point around the target.
+// The offset slowly breathes so the police don't collapse into one blob.
+let tx=p.tar.x,ty=p.tar.y,dx=tx-p.x,dy=ty-p.y,dm=Math.hypot(dx,dy)||1;
+let side=p.flank*(0.72+0.28*Math.sin(p.curve*.7));
+let aim={x:tx+(-dy/dm)*side,y:ty+(dx/dm)*side};
+chase(p,aim,p.s,d);
+if(Math.hypot(p.x-me.x,p.y-me.y)<28){dead=true;sc.textContent='Survived '+tm.textContent+' · Level '+L;ov.style.display='grid'}
+for(const t of thieves)if(t.alive&&Math.hypot(p.x-t.x,p.y-t.y)<27){
+ t.alive=false;
+ // Catcher perk: small permanent speed bump for this run, with a little variance.
+ p.catches++; p.s=Math.min(158,p.s+2.0+Math.random()*2.2);
+ p.flank+=(Math.random()*2-1)*28;
+}}}
 function draw(){g.clearRect(0,0,W,H);g.fillStyle='#dce8cd';g.fillRect(0,0,W,H);g.fillStyle='#d3c5a5';g.fillRect(0,270,W,55);g.fillRect(350,0,55,H);g.fillStyle='#777';for(const o of O)g.fillRect(o.x,o.y,o.w,o.h);function dot(e,col,ch){g.fillStyle=col;g.beginPath();g.arc(e.x,e.y,14,0,7);g.fill();g.fillStyle='white';g.font='bold 13px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(ch,e.x,e.y)}for(const t of thieves)if(t.alive)dot(t,'#df4b4b','T');for(const p of cops)dot(p,'#3979d8','P');dot(me,'#e7b91e','★')}
 function loop(n){let d=Math.min((n-last)/1000,.035);last=n;update(d,n);draw();requestAnimationFrame(loop)}
 joy.onpointerdown=e=>{if(pid!==null)return;pid=e.pointerId;joy.setPointerCapture(pid);let r=joy.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;bs.style.left=ox+'px';bs.style.top=oy+'px';bs.style.display='block';moveJoy(e)};
