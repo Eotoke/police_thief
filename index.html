@@ -1,72 +1,38 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><title>Police & Thief v0.5</title>
-<style>*{box-sizing:border-box;touch-action:manipulation}body{margin:0;background:#f3efe5;font-family:system-ui;color:#222}#a{max-width:760px;margin:auto;padding:10px}.top{display:flex;justify-content:space-between;align-items:center;font-weight:800}button{padding:10px 14px;border:0;border-radius:12px;background:#222;color:white;font-weight:800}canvas{width:100%;aspect-ratio:4/3;background:#dce8cd;border:3px solid #222;border-radius:16px;display:block;margin-top:8px}.hint{text-align:center;font-size:13px;margin:8px;color:#666}#joy{height:180px;border:2px dashed #b7aa94;border-radius:20px;position:relative;touch-action:none;overflow:hidden}.lab{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#8c806d;font-weight:800}.base{display:none;position:absolute;width:116px;height:116px;border-radius:50%;border:3px solid #9998;background:#fff6;transform:translate(-50%,-50%)}.knob{position:absolute;width:54px;height:54px;border-radius:50%;background:#222;left:31px;top:31px}.banner{position:absolute;left:50%;top:80px;transform:translateX(-50%);background:#222;color:white;border-radius:99px;padding:10px 16px;font-weight:900;display:none;white-space:nowrap}.stage{position:relative}.over{display:none;position:absolute;inset:8px 0 0;background:#0009;border-radius:16px;color:#fff;place-items:center;text-align:center;font-size:25px;font-weight:900}</style></head>
-<body><div id="a"><div style="text-align:center;font-weight:950;font-size:20px;margin-bottom:7px">POLICE & THIEF <span style="font-size:13px;opacity:.62">v0.5</span></div><div class="top"><span>❤️ <b id="life">3</b> · ⏱ <b id="tm">0:00</b></span><button id="re">Restart</button><span>ROUND <b id="lv">1</b>/10 · 🚓 <b id="np">1</b></span></div><div class="stage"><canvas id="c" width="800" height="600"></canvas><div id="bn" class="banner"></div><div id="ov" class="over"><div>CAUGHT!<br><small id="sc"></small><br><button id="ag">Run again</button></div></div></div><div class="hint">Touch anywhere below and drag. Your thumb becomes the joystick.</div><div id="joy"><div class="lab">DRAG TO RUN<br>360° CONTROL</div><div id="bs" class="base"><div id="kb" class="knob"></div></div></div></div>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Police & Thief v0.5.1</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;background:#f4efe4;color:#222;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overscroll-behavior:none}body{display:flex;justify-content:center}#app{width:min(100%,760px);padding:10px}.title{text-align:center;font-weight:950;font-size:20px;margin-bottom:7px}.title small{font-size:13px;opacity:.6}.top{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;font-weight:800}button{border:0;border-radius:12px;background:#222;color:#fff;padding:10px 14px;font-weight:850}.stage{position:relative;margin-top:8px}canvas{display:block;width:100%;aspect-ratio:4/3;background:#dce8cd;border:2px solid #333;border-radius:15px}.banner{display:none;position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#222;color:white;border-radius:99px;padding:9px 15px;font-weight:900;white-space:nowrap}.over{display:none;position:absolute;inset:0;background:#0009;border-radius:15px;color:white;align-items:center;justify-content:center;text-align:center;padding:20px}.over.show{display:flex}.result{font-size:27px;font-weight:950}.hint{text-align:center;color:#6d675e;font-size:13px;margin:8px}.legend{text-align:center;color:#68625a;font-size:12px;margin:7px}.joy{height:170px;border:2px dashed #b7aa94;border-radius:20px;position:relative;touch-action:none;overflow:hidden;user-select:none}.joylabel{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#8c806d;font-weight:800;pointer-events:none}.base{display:none;position:absolute;width:112px;height:112px;border-radius:50%;border:2px solid #7778;background:#fff6;transform:translate(-50%,-50%);pointer-events:none}.knob{position:absolute;width:48px;height:48px;border-radius:50%;background:#222;left:32px;top:32px}
+</style></head><body><div id="app">
+<div class="title">POLICE &amp; THIEF <small>v0.5.1</small></div>
+<div class="top"><span>❤️ <b id="lives">3</b> · ⏱ <b id="time">0:00</b></span><button id="restart">Restart</button><span>ROUND <b id="round">1</b>/10 · 🚓 <b id="copCount">1</b></span></div>
+<div class="stage"><canvas id="game" width="720" height="540"></canvas><div id="banner" class="banner"></div><div id="over" class="over"><div><div id="result" class="result"></div><div id="score"></div><button id="again" style="margin-top:14px;background:white;color:#111">Run again</button></div></div></div>
+<div class="legend">★ You · 🔴 Thief · H Hunter · A Ambusher · B Berserker</div>
+<div class="hint">Touch anywhere below and drag with one thumb.</div>
+<div id="joy" class="joy"><div class="joylabel">DRAG TO RUN<br>360° CONTROL</div><div id="base" class="base"><div id="knob" class="knob"></div></div></div>
 <script>
-(()=>{const c=document.querySelector('#c'),g=c.getContext('2d'),W=800,H=600;const tm=document.querySelector('#tm'),lv=document.querySelector('#lv'),np=document.querySelector('#np'),lifeEl=document.querySelector('#life'),bn=document.querySelector('#bn'),ov=document.querySelector('#ov'),sc=document.querySelector('#sc');const joy=document.querySelector('#joy'),bs=document.querySelector('#bs'),kb=document.querySelector('#kb');
-const O=[{x:150,y:110,w:160,h:35},{x:480,y:80,w:38,h:190},{x:240,y:315,w:230,h:38},{x:610,y:390,w:120,h:35},{x:80,y:430,w:42,h:115}];let me,cops,thieves,t0,last,L,dead,lives,won=false,jx=0,jy=0,pid=null,ox=0,oy=0;
-function hit(x,y,r=14){if(x<22||x>W-22||y<22||y>H-22)return 1;return O.some(o=>x+r>o.x&&x-r<o.x+o.w&&y+r>o.y&&y-r<o.y+o.h)}
-function spot(away){for(let i=0;i<500;i++){let p={x:40+Math.random()*720,y:40+Math.random()*520};if(!hit(p.x,p.y)&&(!away||Math.hypot(p.x-away.x,p.y-away.y)>240))return p}return{x:50,y:550}}
-function mv(e,vx,vy,d){let nx=e.x+vx*d,ny=e.y+vy*d;if(!hit(nx,e.y))e.x=nx;if(!hit(e.x,ny))e.y=ny}
-function chase(e,q,s,d){let dx=q.x-e.x,dy=q.y-e.y,m=Math.hypot(dx,dy)||1,ax=dx/m,ay=dy/m,px=e.x,py=e.y;
-if(e.type==='BERSERKER'&&e.rage>0){e.x=Math.max(22,Math.min(W-22,e.x+ax*s*d));e.y=Math.max(22,Math.min(H-22,e.y+ay*s*d));}
-else mv(e,ax*s,ay*s,d);if(Math.hypot(e.x-px,e.y-py)<1){let side=Math.random()<.5?1:-1;mv(e,-ay*s*side,ax*s*side,d)}}
-function addCop(){let p=spot(me);(()=>{let types=['HUNTER','AMBUSHER','BERSERKER'],type=types[cops.length%types.length];
-cops.push({x:p.x,y:p.y,s:116,r:14,tar:null,lock:0,flank:(Math.random()*2-1)*150,curve:Math.random()*6.28,catches:0,type:type,rage:0,rageCharge:0})})()}
-function reset(){me={x:100,y:90};cops=[];thieves=[];L=1;lives=3;won=false;dead=false;lifeEl.textContent=lives;t0=performance.now();last=t0;for(let i=0;i<5;i++){let p=spot();thieves.push({x:p.x,y:p.y,s:135+Math.random()*15,alive:true,k:Math.random()*7})}addCop();lv.textContent=L;np.textContent=1;ov.style.display='none';ov.firstElementChild.firstChild.textContent='CAUGHT!'}
-function update(d,n){if(dead)return;let sec=(n-t0)/1000,newL=1+Math.floor(sec/20);if(newL>10){won=true;dead=true;sc.textContent='YOU SURVIVED ALL 10 ROUNDS! · '+tm.textContent;ov.firstElementChild.firstChild.textContent='ESCAPED!';ov.style.display='grid';return}
-while(L<newL){
-L++;
-// Every level brings a fresh pack of thieves.
-thieves=[];
-for(let i=0;i<5;i++){let tp=spot();thieves.push({x:tp.x,y:tp.y,s:132+Math.random()*20,alive:true,k:Math.random()*7})}
-addCop();lv.textContent=L;np.textContent=cops.length;bn.textContent='LEVEL '+L+' · FRESH THIEVES · NEW POLICE!';bn.style.display='block';setTimeout(()=>bn.style.display='none',1100)}tm.textContent=Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');let m=Math.hypot(jx,jy);if(m>.05)mv(me,jx/m*220,jy/m*220,d);
-for(const t of thieves)if(t.alive){t.k+=d;let cc=cops.reduce((a,b)=>Math.hypot(t.x-a.x,t.y-a.y)<Math.hypot(t.x-b.x,t.y-b.y)?a:b);let dx=t.x-cc.x,dy=t.y-cc.y;if(Math.sin(t.k*.8)>.82&&Math.hypot(dx,dy)<230){dx=me.x-t.x;dy=me.y-t.y}chase(t,{x:t.x+dx,y:t.y+dy},t.s,d)}
-for(const p of cops){
-p.lock-=d;if(p.rage>0)p.rage-=d;
-let qs=[me,...thieves.filter(t=>t.alive)],q=qs.reduce((a,b)=>Math.hypot(p.x-a.x,p.y-a.y)<Math.hypot(p.x-b.x,p.y-b.y)?a:b);
-
-// HUNTER: once committed, hangs on much longer. AMBUSHER: aims ahead of moving player.
-// BERSERKER: periodically gets angry, shakes for 2 sec, then ignores obstacles for 3 sec.
-if(!p.tar||p.lock<=0||!qs.includes(p.tar)){
- p.tar=q;
- p.lock=p.type==='HUNTER'?7:2.5;
-}
-p.curve+=d;
-if(p.type==='BERSERKER'&&p.rage<=0){
- p.rageCharge+=d;
- if(p.rageCharge>9){p.rageCharge=0;p.rage=5;bn.textContent='😡 BERSERKER IS ENRAGED!';bn.style.display='block';setTimeout(()=>bn.style.display='none',900)}
-}
-let tx=p.tar.x,ty=p.tar.y,dx=tx-p.x,dy=ty-p.y,dm=Math.hypot(dx,dy)||1;
-let side=p.flank*(0.72+0.28*Math.sin(p.curve*.7));
-if(p.type==='AMBUSHER'&&p.tar===me){
- let jm=Math.hypot(jx,jy);if(jm>.08){tx+=jx/jm*115;ty+=jy/jm*115}
- side*=1.35;
-}
-let aim={x:tx+(-dy/dm)*side,y:ty+(dx/dm)*side};
-chase(p,aim,p.s*(p.rage>0?1.10:1),d);
-
-if(Math.hypot(p.x-me.x,p.y-me.y)<(p.r||14)+14){
- // Catching the player gives five normal fixed upgrades.
- p.s+=15;p.r=Math.min(27,(p.r||14)+2.5);
- lives--;lifeEl.textContent=lives;
- if(lives<=0){dead=true;sc.textContent='Survived '+tm.textContent+' · Round '+L;ov.style.display='grid'}
- else{
-   let rp=spot();me.x=rp.x;me.y=rp.y;
-   p.tar=null;p.lock=0;
-   bn.textContent='💔 CAUGHT! '+lives+' LIVES LEFT · '+p.type+' POWERED UP';
-   bn.style.display='block';setTimeout(()=>bn.style.display='none',1200);
- }
-}
-for(const t of thieves)if(t.alive&&Math.hypot(p.x-t.x,p.y-t.y)<(p.r||14)+13){
- t.alive=false;
- // Fixed catch upgrade: +3 speed and +0.5 radius.
- p.catches++;p.s+=3;p.r=Math.min(27,(p.r||14)+0.5);
-}
-}}}
-function draw(){g.clearRect(0,0,W,H);g.fillStyle='#dce8cd';g.fillRect(0,0,W,H);g.fillStyle='#d3c5a5';g.fillRect(0,270,W,55);g.fillRect(350,0,55,H);g.fillStyle='#777';for(const o of O)g.fillRect(o.x,o.y,o.w,o.h);function dot(e,col,ch){g.save();if(e.rage>0){g.translate((Math.random()-.5)*7,(Math.random()-.5)*7);col='#8d2dca'}g.fillStyle=col;g.beginPath();g.arc(e.x,e.y,e.r||14,0,7);g.fill();g.fillStyle='white';g.font='bold 13px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(ch,e.x,e.y);g.restore()}for(const t of thieves)if(t.alive)dot(t,'#df4b4b','T');for(const p of cops)dot(p,'#3979d8',p.type==='AMBUSHER'?'A':p.type==='BERSERKER'?'B':'H');dot(me,'#e7b91e','★')}
-function loop(n){let d=Math.min((n-last)/1000,.035);last=n;update(d,n);draw();requestAnimationFrame(loop)}
-joy.onpointerdown=e=>{if(pid!==null)return;pid=e.pointerId;joy.setPointerCapture(pid);let r=joy.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;bs.style.left=ox+'px';bs.style.top=oy+'px';bs.style.display='block';moveJoy(e)};
-function moveJoy(e){if(e.pointerId!==pid)return;let r=joy.getBoundingClientRect(),dx=e.clientX-r.left-ox,dy=e.clientY-r.top-oy,m=Math.hypot(dx,dy)||1,k=Math.min(42,m),ux=dx/m,uy=dy/m;kb.style.left=(31+ux*k)+'px';kb.style.top=(31+uy*k)+'px';jx=ux*Math.min(1,m/42);jy=uy*Math.min(1,m/42)}
-joy.onpointermove=moveJoy;function end(e){if(e.pointerId!==pid)return;pid=null;jx=jy=0;bs.style.display='none';kb.style.left=kb.style.top='31px'}joy.onpointerup=end;joy.onpointercancel=end;
-document.querySelector('#re').onclick=reset;document.querySelector('#ag').onclick=reset;reset();requestAnimationFrame(n=>{last=n;requestAnimationFrame(loop)})})();
-</script></body></html>
+(()=>{const C=document.querySelector('#game'),g=C.getContext('2d'),W=C.width,H=C.height,E=id=>document.getElementById(id),time=E('time'),roundEl=E('round'),livesEl=E('lives'),copCount=E('copCount'),banner=E('banner'),over=E('over'),result=E('result'),score=E('score');
+const walls=[{x:130,y:90,w:145,h:32},{x:430,y:70,w:34,h:165},{x:220,y:285,w:205,h:34},{x:550,y:355,w:110,h:32},{x:65,y:390,w:36,h:105}];
+let player,cops,thieves,start,last,round,lives,ended=false,jx=0,jy=0,pointer=null,origin={x:0,y:0};
+const hit=(x,y,r=12)=>x<18+r||x>W-18-r||y<18+r||y>H-18-r||walls.some(o=>x+r>o.x&&x-r<o.x+o.w&&y+r>o.y&&y-r<o.y+o.h);
+function move(e,vx,vy,dt,ghost=false){let nx=e.x+vx*dt,ny=e.y+vy*dt;if(ghost){e.x=Math.max(20,Math.min(W-20,nx));e.y=Math.max(20,Math.min(H-20,ny));return}if(!hit(nx,e.y,e.r))e.x=nx;if(!hit(e.x,ny,e.r))e.y=ny}
+function spot(away,min=0){for(let i=0;i<400;i++){let p={x:35+Math.random()*(W-70),y:35+Math.random()*(H-70)};if(!hit(p.x,p.y,14)&&(!away||Math.hypot(p.x-away.x,p.y-away.y)>min))return p}return{x:40,y:40}}
+function freshThieves(){thieves=[];for(let i=0;i<5;i++){let p=spot(player,70);thieves.push({x:p.x,y:p.y,r:11,s:125+i*2,alive:true,phase:i*1.17})}}
+function addCop(){let types=['HUNTER','AMBUSHER','BERSERKER'],type=types[cops.length%3],p=spot(player,210);cops.push({x:p.x,y:p.y,r:13,s:108,type,tar:null,lock:0,flank:(cops.length%2?1:-1)*(70+25*(cops.length%3)),rage:0,rageClock:0,shake:0,catches:0});copCount.textContent=cops.length}
+function reset(){player={x:80,y:70,r:12,s:205};cops=[];round=1;lives=3;ended=false;start=performance.now();last=start;jx=jy=0;roundEl.textContent=1;livesEl.textContent=3;over.classList.remove('show');freshThieves();addCop()}
+function steer(e,q,s,dt,ghost=false){let dx=q.x-e.x,dy=q.y-e.y,m=Math.hypot(dx,dy)||1,px=e.x,py=e.y;move(e,dx/m*s,dy/m*s,dt,ghost);if(!ghost&&Math.hypot(e.x-px,e.y-py)<.5){let side=((e.x+e.y)%2>.8)?1:-1;move(e,-dy/m*s*side,dx/m*s*side,dt)}}
+function flash(txt){banner.textContent=txt;banner.style.display='block';clearTimeout(flash.t);flash.t=setTimeout(()=>banner.style.display='none',1100)}
+function power(c,mult=1){c.s+=2.5*mult;c.r=Math.min(26,c.r+.45*mult)}
+function end(win){ended=true;result.textContent=win?'ESCAPED!':'CAUGHT!';score.textContent=win?'You survived all 10 rounds.':'Survived '+time.textContent+' · Reached round '+round;over.classList.add('show')}
+function update(dt,now){if(ended)return;let sec=(now-start)/1000,newRound=1+Math.floor(sec/20);if(newRound>10){end(true);return}while(round<newRound){round++;roundEl.textContent=round;freshThieves();addCop();flash('ROUND '+round+' · FRESH THIEVES · NEW POLICE')}
+time.textContent=Math.floor(sec/60)+':'+String(Math.floor(sec%60)).padStart(2,'0');let jm=Math.hypot(jx,jy);if(jm>.04)move(player,jx/jm*player.s,jy/jm*player.s,dt);
+for(const t of thieves)if(t.alive){t.phase+=dt;let c=cops.reduce((a,b)=>Math.hypot(t.x-a.x,t.y-a.y)<Math.hypot(t.x-b.x,t.y-b.y)?a:b),dx=t.x-c.x,dy=t.y-c.y,m=Math.hypot(dx,dy)||1;if(Math.sin(t.phase*.7)>.82&&m<190){dx=player.x-t.x;dy=player.y-t.y}steer(t,{x:t.x+dx,y:t.y+dy},t.s,dt)}
+for(const c of cops){c.lock-=dt;c.rageClock+=dt;if(c.rage>0)c.rage-=dt;if(c.type==='BERSERKER'&&c.rage<=0&&c.rageClock>=9){c.rageClock=0;c.shake=2;c.rage=5;flash('😡 BERSERKER ENRAGED')}if(c.shake>0)c.shake-=dt;
+let qs=[player,...thieves.filter(t=>t.alive)],nearest=qs.reduce((a,b)=>Math.hypot(c.x-a.x,c.y-a.y)<Math.hypot(c.x-b.x,c.y-b.y)?a:b);if(!c.tar||!qs.includes(c.tar)||c.lock<=0){c.tar=nearest;c.lock=c.type==='HUNTER'?7:2.4}
+let tx=c.tar.x,ty=c.tar.y,dx=tx-c.x,dy=ty-c.y,m=Math.hypot(dx,dy)||1,side=c.flank;if(c.type==='AMBUSHER'&&c.tar===player&&jm>.05){tx+=jx/jm*95;ty+=jy/jm*95;side*=1.25}let aim={x:tx-dy/m*side,y:ty+dx/m*side};steer(c,aim,c.s*(c.rage>0?1.1:1),dt,c.type==='BERSERKER'&&c.rage>0);
+if(Math.hypot(c.x-player.x,c.y-player.y)<c.r+player.r){power(c,5);lives--;livesEl.textContent=lives;if(lives<=0){end(false);return}let p=spot(c,230);player.x=p.x;player.y=p.y;c.tar=null;flash('💔 '+lives+' LIVES LEFT · '+c.type+' POWERED UP')}
+for(const t of thieves)if(t.alive&&Math.hypot(c.x-t.x,c.y-t.y)<c.r+t.r){t.alive=false;c.catches++;power(c)}}}
+function draw(){g.clearRect(0,0,W,H);g.fillStyle='#dce8cd';g.fillRect(0,0,W,H);g.fillStyle='#d1c4a5';g.fillRect(0,245,W,48);g.fillRect(315,0,50,H);g.fillStyle='#727879';walls.forEach(o=>g.fillRect(o.x,o.y,o.w,o.h));function dot(e,col,ch,shake=0){g.save();if(shake>0)g.translate((Math.random()-.5)*6,(Math.random()-.5)*6);g.fillStyle=col;g.beginPath();g.arc(e.x,e.y,e.r,0,Math.PI*2);g.fill();g.fillStyle='white';g.font='bold 12px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(ch,e.x,e.y);g.restore()}thieves.forEach(t=>{if(t.alive)dot(t,'#df4b4b','T')});cops.forEach(c=>dot(c,c.rage>0?'#8b2fc2':'#3979d8',c.type==='HUNTER'?'H':c.type==='AMBUSHER'?'A':'B',c.shake));dot(player,'#e6b91e','★')}
+function loop(now){let dt=Math.min((now-last)/1000,.035);last=now;update(dt,now);draw();requestAnimationFrame(loop)}
+const joy=E('joy'),base=E('base'),knob=E('knob');function joyMove(e){if(e.pointerId!==pointer)return;let r=joy.getBoundingClientRect(),dx=e.clientX-r.left-origin.x,dy=e.clientY-r.top-origin.y,m=Math.hypot(dx,dy)||1,k=Math.min(38,m),ux=dx/m,uy=dy/m;knob.style.left=(32+ux*k)+'px';knob.style.top=(32+uy*k)+'px';jx=ux*Math.min(1,m/38);jy=uy*Math.min(1,m/38)}
+joy.addEventListener('pointerdown',e=>{if(pointer!==null)return;pointer=e.pointerId;joy.setPointerCapture(pointer);let r=joy.getBoundingClientRect();origin={x:e.clientX-r.left,y:e.clientY-r.top};base.style.left=origin.x+'px';base.style.top=origin.y+'px';base.style.display='block';joyMove(e)});joy.addEventListener('pointermove',joyMove);function release(e){if(e.pointerId!==pointer)return;pointer=null;jx=jy=0;base.style.display='none';knob.style.left=knob.style.top='32px'}joy.addEventListener('pointerup',release);joy.addEventListener('pointercancel',release);E('restart').onclick=reset;E('again').onclick=reset;reset();requestAnimationFrame(n=>{last=n;requestAnimationFrame(loop)})})();
+</script></div></body></html>
