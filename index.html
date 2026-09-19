@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f6f8fb">
+<title>Police & Thief</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f6f8fb;color:#17202a;touch-action:manipulation}
+.app{max-width:760px;margin:auto;padding:14px 14px 32px}.restart{width:100%;min-height:58px;border:0;border-radius:18px;background:#e9eefb;font-size:22px;font-weight:800;color:#17202a}
+.hud{display:flex;justify-content:space-between;gap:12px;align-items:end;margin:16px 2px 10px}.hud h1{font-size:23px;margin:0 0 3px}.sub{color:#687180;font-size:15px}.stats{text-align:right;white-space:nowrap}.time{font-size:38px;font-weight:850;line-height:1}.left{color:#687180;margin-top:5px}
+.board{overflow:hidden;border:1px solid #bac6aa;border-radius:20px;background:#dce9ca;aspect-ratio:4/3;position:relative}canvas{width:100%;height:100%;display:block}
+.legend{text-align:center;color:#687180;font-size:14px;margin:10px 0 12px}.controls{width:min(100%,470px);margin:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;touch-action:none}.controls .blank{visibility:hidden}.dir{height:92px;border:1px solid #d4dae5;border-radius:24px;background:#edf1fb;font-size:38px;font-weight:800;color:#111;touch-action:none;-webkit-user-select:none;user-select:none}.dir:active,.dir.on{background:#dce5fa;transform:scale(.98)}.hint{text-align:center;color:#687180;font-size:13px;margin-top:12px}
+.overlay{position:absolute;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:20px}.overlay.show{display:flex}.card{background:white;border-radius:18px;padding:22px;text-align:center;width:min(320px,100%)}.card h2{margin:0 0 8px}.again{width:100%;min-height:48px;border:0;border-radius:13px;background:#e9eefb;font-weight:800;font-size:16px;margin-top:10px}
+@media(max-width:480px){.app{padding:10px 10px 26px}.restart{min-height:54px}.hud h1{font-size:20px}.time{font-size:34px}.dir{height:88px}.controls{gap:10px}}
+</style>
+</head>
+<body>
+<main class="app">
+<button class="restart" id="restart">↻ &nbsp; Restart Chase</button>
+<section class="hud"><div><h1>You are the thief 🔴</h1><div class="sub" id="msg">The other thieves are not necessarily your friends.</div></div><div class="stats"><div class="time" id="time">30.0</div><div class="left" id="left">5 thieves left</div></div></section>
+<div class="board"><canvas id="cv"></canvas><div class="overlay" id="overlay"><div class="card"><h2 id="result"></h2><div id="detail"></div><button class="again" id="again">Play again</button></div></div></div>
+<div class="legend">🔴 You &nbsp; 🟠 thieves &nbsp; 🔵 police &nbsp; • &nbsp; survive 30s</div>
+<div class="controls">
+<div class="blank"></div><button class="dir" data-d="u">▲</button><div class="blank"></div>
+<button class="dir" data-d="l">◀</button><button class="dir" data-d="d">▼</button><button class="dir" data-d="r">▶</button>
+</div>
+<div class="hint">Hold a direction to run • keyboard arrows/WASD also work</div>
+</main>
+<script>
+(()=>{
+const cv=document.querySelector('#cv'),ctx=cv.getContext('2d'),te=document.querySelector('#time'),le=document.querySelector('#left'),ov=document.querySelector('#overlay'),res=document.querySelector('#result'),det=document.querySelector('#detail');
+const W=800,H=600,R=13,M=30,S=20,COLS=W/S,ROWS=H/S;
+const O=[{x:145,y:100,w:130,h:50,t:'bench'},{x:500,y:70,w:50,h:180,t:'wall'},{x:325,y:250,w:150,h:50,t:'wall'},{x:75,y:350,w:75,h:75,t:'tree'},{x:625,y:350,w:75,h:75,t:'tree'},{x:300,y:475,w:175,h:50,t:'bench'}];
+let me,th,pol,running=false,last=0,timer=30,raf,keys={};
+const D=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y), clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function blocked(x,y,p=R){if(x<M+p||y<M+p||x>W-M-p||y>H-M-p)return true;return O.some(o=>x+p>o.x&&x-p<o.x+o.w&&y+p>o.y&&y-p<o.y+o.h)}
+function move(a,dx,dy,sp,dt){let ox=a.x,oy=a.y,nx=a.x+dx*sp*dt;if(!blocked(nx,a.y))a.x=nx;let ny=a.y+dy*sp*dt;if(!blocked(a.x,ny))a.y=ny;return Math.hypot(a.x-ox,a.y-oy)}
+function cell(p){return{x:clamp(Math.floor(p.x/S),0,COLS-1),y:clamp(Math.floor(p.y/S),0,ROWS-1)}} function ctr(c){return{x:c.x*S+S/2,y:c.y*S+S/2}}
+function free(x,y){return x>=0&&y>=0&&x<COLS&&y<ROWS&&!blocked(x*S+S/2,y*S+S/2,R+5)}
+function nearestFree(c){if(free(c.x,c.y))return c;for(let r=1;r<12;r++){let best=null,bd=1e9;for(let y=c.y-r;y<=c.y+r;y++)for(let x=c.x-r;x<=c.x+r;x++){if(!free(x,y))continue;let z=Math.hypot(x-c.x,y-c.y);if(z<bd){bd=z;best={x,y}}}if(best)return best}return{x:3,y:3}}
+function path(a,b){let A=nearestFree(cell(a)),B=nearestFree(cell(b)),K=n=>n.x+','+n.y,open=[A],came=new Map(),g=new Map([[K(A),0]]),f=new Map([[K(A),Math.hypot(A.x-B.x,A.y-B.y)]]),closed=new Set(),dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]],loops=0;
+while(open.length&&loops++<1800){let bi=0;for(let i=1;i<open.length;i++)if((f.get(K(open[i]))??1e9)<(f.get(K(open[bi]))??1e9))bi=i;let n=open.splice(bi,1)[0],nk=K(n);if(closed.has(nk))continue;if(n.x===B.x&&n.y===B.y){let out=[];while(K(n)!==K(A)){out.push(ctr(n));n=came.get(K(n));if(!n)break}return out.reverse()}closed.add(nk);for(const v of dirs){let z={x:n.x+v[0],y:n.y+v[1]},zk=K(z);if(!free(z.x,z.y)||closed.has(zk))continue;if(v[0]&&v[1]&&(!free(n.x+v[0],n.y)||!free(n.x,n.y+v[1])))continue;let ng=(g.get(nk)||0)+(v[0]&&v[1]?1.414:1);if(ng<(g.get(zk)??1e9)){came.set(zk,n);g.set(zk,ng);f.set(zk,ng+Math.hypot(z.x-B.x,z.y-B.y));if(!open.some(q=>K(q)===zk))open.push(z)}}}return[]}
+function nav(a,dest,speed,dt){a.recalc=(a.recalc||0)-dt;if(a.recalc<=0||!a.path||a.pi>=a.path.length){a.path=path(a,dest);a.pi=0;a.recalc=.32}let w=a.path[a.pi];if(!w)return 0;if(D(a,w)<11){a.pi++;w=a.path[a.pi];if(!w)return 0}let vx=w.x-a.x,vy=w.y-a.y,m=Math.hypot(vx,vy)||1;return move(a,vx/m,vy/m,speed,dt)}
+function randomSafe(){for(let i=0;i<100;i++){let p={x:55+Math.random()*(W-110),y:55+Math.random()*(H-110)};if(!blocked(p.x,p.y,R+7))return p}return{x:400,y:350}}
+function farPoint(from){let best=randomSafe(),score=-1e9;for(let i=0;i<30;i++){let p=randomSafe(),near=Math.min(...pol.map(q=>D(p,q))),s=near-.08*D(from,p);if(s>score){score=s;best=p}}return best}
+function sabotage(t){let vx=me.x-t.x,vy=me.y-t.y,m=Math.hypot(vx,vy)||1,z={x:clamp(me.x+vx/m*65,55,W-55),y:clamp(me.y+vy/m*65,55,H-55)};return blocked(z.x,z.y,R+7)?farPoint(t):z}
+function bait(t){let p=pol.reduce((a,b)=>D(t,a)<D(t,b)?a:b),vx=t.x-p.x,vy=t.y-p.y,m=Math.hypot(vx,vy)||1,z={x:clamp(p.x+vx/m*75,55,W-55),y:clamp(p.y+vy/m*75,55,H-55)};return blocked(z.x,z.y,R+7)?farPoint(t):z}
+function count(){let n=(me.alive?1:0)+th.filter(v=>v.alive).length;le.textContent=n+' '+(n===1?'thief':'thieves')+' left'}
+function reset(){cancelAnimationFrame(raf);keys={};me={x:400,y:390,alive:true};let types=['RUNNER','BAITER','SABOTEUR','OPPORTUNIST'],starts=[{x:90,y:80},{x:700,y:90},{x:105,y:510},{x:690,y:500}];th=starts.map((v,i)=>({...v,alive:true,type:types[i],goal:randomSafe(),think:0,path:[],pi:0,recalc:0,watch:0,wx:v.x,wy:v.y}));pol=[{x:55,y:290},{x:745,y:290}].map(v=>({...v,target:null,lock:0,path:[],pi:0,recalc:0,watch:0,wx:v.x,wy:v.y}));timer=30;te.textContent='30.0';ov.classList.remove('show');count();draw()}
+function finish(win){running=false;cancelAnimationFrame(raf);res.textContent=win?'You survived! 🏃💨':'Caught! 🚓';det.textContent=win?'You made the full 30 seconds.':'You lasted '+(30-timer).toFixed(1)+' seconds.';ov.classList.add('show')}
+function think(t){let chased=pol.find(p=>p.target===t),near=Math.min(...pol.map(p=>D(t,p))),alive=th.filter(v=>v.alive).length+(me.alive?1:0);if(t.type==='SABOTEUR'&&chased&&D(t,me)<340)return t.goal=sabotage(t);if(t.type==='BAITER'&&!chased&&near>100&&Math.random()<.55)return t.goal=bait(t);if(t.type==='OPPORTUNIST'&&chased&&alive<=3&&Math.random()<.7)return t.goal=sabotage(t);t.goal=farPoint(t)}
+function update(dt){timer=Math.max(0,timer-dt);te.textContent=timer.toFixed(1);let dx=(keys.r?1:0)-(keys.l?1:0),dy=(keys.d?1:0)-(keys.u?1:0);if(dx||dy){let m=Math.hypot(dx,dy);move(me,dx/m,dy/m,218,dt)}
+th.forEach(t=>{if(!t.alive)return;t.think-=dt;t.watch+=dt;if(t.think<=0||D(t,t.goal)<24){think(t);t.think=.55+Math.random()*.65;t.path=[];t.recalc=0}nav(t,t.goal,t.type==='RUNNER'?142:136,dt);if(t.watch>=.5){let prog=Math.hypot(t.x-t.wx,t.y-t.wy);t.watch=0;t.wx=t.x;t.wy=t.y;if(prog<5){t.goal=randomSafe();t.path=[];t.recalc=0;t.think=.15}}});
+pol.forEach((p,i)=>{let targets=[...(me.alive?[me]:[]),...th.filter(v=>v.alive)];if(!targets.length)return;p.lock-=dt;p.watch+=dt;if(!p.target||!p.target.alive||p.lock<=0){let n=targets.reduce((a,b)=>D(p,a)<D(p,b)?a:b);p.target=n;p.lock=2.2+Math.random()*1.8;p.path=[];p.recalc=0}let close=targets.reduce((a,b)=>D(p,a)<D(p,b)?a:b);if(close!==p.target&&D(p,close)<55){p.target=close;p.lock=2.5;p.path=[];p.recalc=0}nav(p,p.target,157+i*4,dt);if(p.watch>=1){let prog=Math.hypot(p.x-p.wx,p.y-p.wy);p.watch=0;p.wx=p.x;p.wy=p.y;if(prog<7){p.path=[];p.recalc=0;p.target=null;p.lock=0}}for(const t of targets){if(D(p,t)<R*2+6){t.alive=false;count();if(p.target===t){p.target=null;p.lock=0;p.path=[]}if(t===me){finish(false);return}}}});
+if(timer<=0&&running)finish(true)}
+function draw(){let cw=cv.clientWidth,ch=cv.clientHeight,dp=Math.min(devicePixelRatio||1,2);if(cv.width!==Math.round(cw*dp)||cv.height!==Math.round(ch*dp)){cv.width=Math.round(cw*dp);cv.height=Math.round(ch*dp)}ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle='#dce9ca';ctx.fillRect(0,0,W,H);ctx.strokeStyle='rgba(50,70,40,.10)';for(let a=0;a<W;a+=50){ctx.beginPath();ctx.moveTo(a,0);ctx.lineTo(a,H);ctx.stroke()}for(let a=0;a<H;a+=50){ctx.beginPath();ctx.moveTo(0,a);ctx.lineTo(W,a);ctx.stroke()}O.forEach(o=>{if(o.t==='tree'){ctx.fillStyle='#75573a';ctx.fillRect(o.x+30,o.y+35,15,40);ctx.fillStyle='#537b45';ctx.beginPath();ctx.arc(o.x+37,o.y+32,35,0,Math.PI*2);ctx.fill()}else{ctx.fillStyle=o.t==='wall'?'#777':'#896a49';ctx.fillRect(o.x,o.y,o.w,o.h)}});function dot(a,col,label){if(a.alive===false)return;ctx.fillStyle=col;ctx.beginPath();ctx.arc(a.x,a.y,R,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,a.x,a.y)}th.forEach(t=>dot(t,'#f08a2e',t.type==='SABOTEUR'?'S':t.type==='BAITER'?'B':t.type==='OPPORTUNIST'?'O':'T'));dot(me,'#e64c4c','YOU');pol.forEach(p=>dot(p,'#3478c8','P'))}
+function loop(t){if(!running)return;let dt=Math.min((t-last)/1000,.04);last=t;update(dt);draw();if(running)raf=requestAnimationFrame(loop)}
+function go(){reset();running=true;last=performance.now();raf=requestAnimationFrame(loop)}
+document.querySelector('#restart').addEventListener('click',go);document.querySelector('#again').addEventListener('click',go);
+document.querySelectorAll('.dir').forEach(b=>{let z=b.dataset.d;const on=e=>{e.preventDefault();keys[z]=1;b.classList.add('on')},off=e=>{e.preventDefault();keys[z]=0;b.classList.remove('on')};b.addEventListener('pointerdown',on);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,off))});
+const map={ArrowUp:'u',w:'u',W:'u',ArrowDown:'d',s:'d',S:'d',ArrowLeft:'l',a:'l',A:'l',ArrowRight:'r',d:'r',D:'r'};addEventListener('keydown',e=>{if(map[e.key]){e.preventDefault();keys[map[e.key]]=1}});addEventListener('keyup',e=>{if(map[e.key]){e.preventDefault();keys[map[e.key]]=0}});
+new ResizeObserver(draw).observe(cv);reset();running=true;last=performance.now();raf=requestAnimationFrame(loop);
+})();
+</script>
+</body></html>
